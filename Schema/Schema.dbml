@@ -1,0 +1,77 @@
+// =============================================================================
+// London Lions Player Analytics - SPV Schema
+// =============================================================================
+
+Project LondonLions_Analytics {
+    database_type: 'Snowflake'
+    Note: '''
+    **London Lions Player 360 Platform**
+    Consolidated analytical model for scouting and performance tracking.
+    '''
+}
+
+// =============================================================================
+// DOMAIN LAYER (Stars & Snowflakes)
+// =============================================================================
+
+Table DIM_PLAYER [note: 'Historical Player Record (SCD Type 2)'] {
+    player_key integer [pk]
+    tm_player_id integer [not null, note: 'Transfermarkt ID']
+    player_name varchar(255)
+    position varchar(50)
+    current_club_name varchar(100)
+    market_value_eur decimal(15,2)
+
+    // Change Detection
+    md5_hash varchar(32)
+
+    // SCD2 Tracking
+    effective_from timestamp
+    effective_to timestamp
+    is_current boolean
+    dw_insert_ts timestamp
+}
+
+Table DIM_CLUB [note: 'Analytical Club Dimension'] {
+    club_key integer [pk]
+    tm_club_id integer [unique]
+    club_name varchar(255)
+    stadium_name varchar(100)
+    dw_insert_ts timestamp
+}
+
+Table FCT_PERFORMANCE [note: 'Match-level player statistics'] {
+    performance_key integer [pk]
+    player_key integer [ref: > DIM_PLAYER.player_key]
+    club_key integer [ref: > DIM_CLUB.club_key]
+    match_date date
+    minutes_played integer
+    goals integer
+    assists integer
+    yellow_cards integer
+    red_cards integer
+    dw_insert_ts timestamp
+}
+
+Table FCT_VALUATIONS [note: 'Historical Market Trends'] {
+    valuation_key integer [pk]
+    player_key integer [ref: > DIM_PLAYER.player_key]
+    valuation_date date
+    market_value_eur decimal(15,2)
+    valuation_delta_eur decimal(15,2)
+    dw_insert_ts timestamp
+}
+
+// =============================================================================
+// GROUPS
+// =============================================================================
+
+TableGroup player_core {
+    DIM_PLAYER
+    FCT_PERFORMANCE
+    FCT_VALUATIONS
+}
+
+TableGroup club_entities {
+    DIM_CLUB
+}

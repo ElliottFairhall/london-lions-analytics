@@ -1,0 +1,22 @@
+-- =============================================================================
+-- VW_ODS_CLUBS
+-- =============================================================================
+
+USE SCHEMA LIONS_DB.ODS;
+
+CREATE OR REPLACE VIEW VW_ODS_CLUBS AS
+SELECT
+    CLUB_ID,
+    NAME AS CLUB_NAME,
+    CLUB_CODE,
+    DOMESTIC_COMPETITION_ID,
+    STADIUM_NAME,
+    CASE
+        WHEN TOTAL_MARKET_VALUE LIKE '€%' THEN
+            CAST(REPLACE(REPLACE(TOTAL_MARKET_VALUE, '€', ''), 'm', '') AS DECIMAL(20, 2)) * 1000000
+        ELSE 0
+    END AS MARKET_VALUE_CLEAN,
+    MD5(COALESCE(NAME, '') || COALESCE(STADIUM_NAME, '') || COALESCE(CAST(TOTAL_MARKET_VALUE AS VARCHAR), ''))
+        AS NEW_MD5_HASH
+FROM LIONS_DB.STAGING.STRM_TM_CLUBS
+QUALIFY ROW_NUMBER() OVER (PARTITION BY CLUB_ID ORDER BY METADATA$TS DESC) = 1;

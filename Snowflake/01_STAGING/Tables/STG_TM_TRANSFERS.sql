@@ -1,0 +1,22 @@
+-- =============================================================================
+-- STG_TM_TRANSFERS
+-- =============================================================================
+
+USE SCHEMA LIONS_DB.STAGING;
+
+CREATE OR REPLACE TABLE STG_TM_TRANSFERS (
+    PLAYER_ID INTEGER,
+    TRANSFER_DATE DATE,
+    TRANSFER_SEASON VARCHAR(20),
+    FROM_CLUB_ID INTEGER,
+    TO_CLUB_ID INTEGER,
+    FROM_CLUB_NAME VARCHAR(255),
+    TO_CLUB_NAME VARCHAR(255),
+    TRANSFER_FEE FLOAT,
+    MARKET_VALUE_IN_EUR FLOAT,
+    PLAYER_NAME VARCHAR(255),
+    DW_INSERT_TS TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+)
+COMMENT = 'Landing table for player transfer history and fees';
+
+CREATE OR REPLACE STREAM STRM_TM_TRANSFERS ON TABLE STG_TM_TRANSFERS;

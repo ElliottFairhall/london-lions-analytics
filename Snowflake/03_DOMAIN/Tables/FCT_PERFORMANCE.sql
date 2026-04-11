@@ -1,0 +1,20 @@
+-- =============================================================================
+-- FCT_PERFORMANCE
+-- =============================================================================
+
+USE SCHEMA LIONS_DB.DOMAIN;
+
+CREATE OR REPLACE TABLE FCT_PERFORMANCE (
+    PERFORMANCE_KEY INTEGER IDENTITY (1, 1) PRIMARY KEY,
+    PLAYER_KEY INTEGER REFERENCES DIM_PLAYER (PLAYER_KEY),
+    CLUB_KEY INTEGER REFERENCES DIM_CLUB (CLUB_KEY),
+    MATCH_DATE DATE,
+    MINUTES_PLAYED INTEGER,
+    GOALS INTEGER,
+    ASSISTS INTEGER,
+    YELLOW_CARDS INTEGER,
+    RED_CARDS INTEGER,
+    GOALS_PER_90 AS (CAST (GOALS AS FLOAT) / NULLIF (MINUTES_PLAYED, 0) * 90),
+    DW_INSERT_TS TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+)
+COMMENT = 'Fact table tracking player performance per match';

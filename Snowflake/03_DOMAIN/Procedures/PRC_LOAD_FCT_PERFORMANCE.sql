@@ -1,0 +1,42 @@
+-- =============================================================================
+-- PRC_LOAD_FCT_PERFORMANCE
+-- =============================================================================
+-- Purpose:    Load FCT_PERFORMANCE from ODS_APPEARANCES
+-- Standards:  TechTrend logging, Explicit DB prefixing
+-- =============================================================================
+
+USE SCHEMA LIONS_DB.DOMAIN;
+
+CREATE OR REPLACE PROCEDURE LIONS_DB.DOMAIN.PRC_LOAD_FCT_PERFORMANCE()
+RETURNS STRING
+LANGUAGE SQL
+EXECUTE AS CALLER AS
+$$
+DECLARE
+    ROW_COUNT_INSERTED INTEGER;
+BEGIN
+    CALL LIONS_DB.UTILS.UTL_LOG_EVENT('INFO', 'Started FCT_PERFORMANCE load', 'PRC_LOAD_FCT_PERFORMANCE');
+
+    TRUNCATE TABLE LIONS_DB.DOMAIN.FCT_PERFORMANCE;
+
+    INSERT INTO LIONS_DB.DOMAIN.FCT_PERFORMANCE (PLAYER_KEY, CLUB_KEY, MATCH_DATE, MINUTES_PLAYED, GOALS, ASSISTS, YELLOW_CARDS, RED_CARDS)
+    SELECT
+        p.PLAYER_KEY,
+        c.CLUB_KEY,
+        a.MATCH_DATE,
+        a.MINUTES_PLAYED,
+        a.GOALS,
+        a.ASSISTS,
+        a.YELLOW_CARDS,
+        a.RED_CARDS
+    FROM LIONS_DB.ODS.ODS_APPEARANCES a
+    JOIN LIONS_DB.DOMAIN.DIM_PLAYER p ON a.PLAYER_ID = p.TM_PLAYER_ID
+      AND a.MATCH_DATE BETWEEN p.EFFECTIVE_FROM AND p.EFFECTIVE_TO
+    JOIN LIONS_DB.DOMAIN.DIM_CLUB c ON a.CLUB_ID = c.TM_CLUB_ID;
+
+    ROW_COUNT_INSERTED := SQLROWCOUNT;
+    CALL LIONS_DB.UTILS.UTL_LOG_EVENT('INFO', 'Completed FCT_PERFORMANCE load. Rows: ' || :ROW_COUNT_INSERTED, 'PRC_LOAD_FCT_PERFORMANCE');
+
+    RETURN 'Success';
+END;
+$$;

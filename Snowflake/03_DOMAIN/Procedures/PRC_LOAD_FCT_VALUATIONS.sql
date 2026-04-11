@@ -1,0 +1,45 @@
+-- =============================================================================
+-- PRC_LOAD_FCT_VALUATIONS
+-- =============================================================================
+-- Purpose:    Load FCT_VALUATIONS with delta calculations
+-- Standards:  TechTrend logging, Explicit DB prefixing
+-- =============================================================================
+
+USE SCHEMA LIONS_DB.DOMAIN;
+
+CREATE OR REPLACE PROCEDURE LIONS_DB.DOMAIN.PRC_LOAD_FCT_VALUATIONS()
+RETURNS STRING
+LANGUAGE SQL
+EXECUTE AS CALLER AS
+$$
+DECLARE
+    ROW_COUNT_INSERTED INTEGER;
+BEGIN
+    CALL LIONS_DB.UTILS.UTL_LOG_EVENT('INFO', 'Started FCT_VALUATIONS load', 'PRC_LOAD_FCT_VALUATIONS');
+
+    TRUNCATE TABLE LIONS_DB.DOMAIN.FCT_VALUATIONS;
+
+    INSERT INTO LIONS_DB.DOMAIN.FCT_VALUATIONS (PLAYER_KEY, VALUATION_DATE, MARKET_VALUE_EUR, VALUATION_DELTA_EUR)
+    WITH VAL_HISTORY AS (
+        SELECT
+            p.PLAYER_KEY,
+            v.VALUATION_DATE,
+            v.MARKET_VALUE_EUR,
+            LAG(v.MARKET_VALUE_EUR) OVER (PARTITION BY p.PLAYER_KEY ORDER BY v.VALUATION_DATE) as PREV_VALUE
+        FROM LIONS_DB.ODS.ODS_VALUATIONS v
+        JOIN LIONS_DB.DOMAIN.DIM_PLAYER p ON v.PLAYER_ID = p.TM_PLAYER_ID
+          AND v.VALUATION_DATE BETWEEN p.EFFECTIVE_FROM AND p.EFFECTIVE_TO
+    )
+    SELECT
+        PLAYER_KEY,
+        VALUATION_DATE,
+        MARKET_VALUE_EUR,
+        COALESCE(MARKET_VALUE_EUR - PREV_VALUE, 0)
+    FROM VAL_HISTORY;
+
+    ROW_COUNT_INSERTED := SQLROWCOUNT;
+    CALL LIONS_DB.UTILS.UTL_LOG_EVENT('INFO', 'Completed FCT_VALUATIONS load. Rows: ' || :ROW_COUNT_INSERTED, 'PRC_LOAD_FCT_VALUATIONS');
+
+    RETURN 'Success';
+END;
+$$;
