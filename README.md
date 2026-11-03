@@ -185,6 +185,12 @@ CALL LIONS_DB.UTILS.PRC_LOAD_ALL_LAYERS();
 
 ______________________________________________________________________
 
+## Re-running the scripts
+
+Table scripts use `CREATE TABLE IF NOT EXISTS`, so running them again never drops or empties a table that already holds
+data. The trade-off is that they do not change an existing table: to alter a column, write an explicit `ALTER TABLE` and
+update the script to match, or drop the table on purpose in a development account.
+
 ## Author
 
 **London Lions Analytics Department**
